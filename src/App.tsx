@@ -14,9 +14,12 @@ import { PiperTTSPanel } from './components/PiperTTSPanel';
 import { SecurityLockscreen } from './components/SecurityLockscreen';
 import { HolographicVisualizer } from './components/HolographicVisualizer';
 import { AudioWaveformBar } from './components/AudioWaveformBar';
+import { HardwareTelemetryHUD } from './components/HardwareTelemetryHUD';
+import { AutonomousProtocolsCard } from './components/AutonomousProtocolsCard';
 import { ChatMessage, CommandResult, NoteItem, TaskItem, TimerItem } from './types';
 import { streamLocalLLMResponse } from './services/localLLM';
 import { piperTTS, speechRecognizer } from './services/piperTTS';
+import { whisperOfflineEngine } from './services/whisperOfflineEngine';
 import {
   getSavedNotes,
   getSavedTasks,
@@ -49,6 +52,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'all' | 'console' | 'defense' | 'tasks' | 'voice'>('all');
   const [isLiveOverlayOpen, setIsLiveOverlayOpen] = useState(false);
   const [unauthorizedVoiceAlert, setUnauthorizedVoiceAlert] = useState(false);
+  const [isBlackoutMode, setIsBlackoutMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('ali_blackout_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -109,9 +119,13 @@ export default function App() {
       setBatteryLevel(m.batteryLevel ?? 100);
     });
 
+    // Start background Whisper duplex & VAD pipeline
+    whisperOfflineEngine.startEngine().catch(() => {});
+
     return () => {
       unsub();
       unsubMic();
+      whisperOfflineEngine.stopEngine();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -126,9 +140,26 @@ export default function App() {
     }
   }, [messages]);
 
+  const handleToggleBlackout = (enable?: boolean | unknown) => {
+    setIsBlackoutMode((prev) => {
+      const next = typeof enable === 'boolean' ? enable : !Boolean(prev);
+      try {
+        localStorage.setItem('ali_blackout_mode', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   // Handle user query submission
   const handleSendMessage = async (userText: string) => {
     if (!userText.trim() || isStreaming) return;
+
+    const lower = userText.toLowerCase();
+    if (lower.includes('désactiver mode furtif') || lower.includes('quitter blackout') || lower.includes('désactive le mode furtif')) {
+      handleToggleBlackout(false);
+    } else if (lower.includes('mode furtif') || lower.includes('blackout') || lower.includes('active mode furtif')) {
+      handleToggleBlackout(true);
+    }
 
     const userMessage: ChatMessage = {
       id: 'usr-' + Date.now(),
@@ -163,6 +194,8 @@ export default function App() {
             setNotes((n) => [cmd.data, ...n]);
           } else if (cmd.type === 'timer' && cmd.data) {
             setTimers((tm) => [cmd.data, ...tm]);
+          } else if (cmd.type === 'system' && cmd.data?.protocol === 'stealth') {
+            handleToggleBlackout(true);
           }
         },
         onComplete: (fullText, cmds) => {
@@ -203,22 +236,20 @@ export default function App() {
 
   // Direct hands-free mic toggle without opening any full-screen overlay
   const handleToggleMic = () => {
-    if (isListening) {
+    if (speechRecognizer.getIsListening()) {
       speechRecognizer.stop();
-      setIsListening(false);
-    } else {
       playAlertChime('beep');
-      setIsListening(true);
+    } else {
+      playAlertChime('listen_start');
       speechRecognizer.start(
         (transcript, isFinal) => {
           if (isFinal && transcript.trim()) {
-            speechRecognizer.stop();
-            setIsListening(false);
             handleSendMessage(transcript.trim());
+            playAlertChime('confirm');
           }
         },
-        () => {
-          setIsListening(false);
+        (err) => {
+          console.warn('Microphone notice:', err);
         }
       );
     }
@@ -238,7 +269,9 @@ export default function App() {
   }
 
   return (
-    <div className="h-[100dvh] w-full max-w-md md:max-w-xl mx-auto flex flex-col bg-[#06090f] text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 overflow-hidden shadow-2xl relative">
+    <div className={`h-[100dvh] w-full max-w-md md:max-w-xl mx-auto flex flex-col ${
+      isBlackoutMode ? 'bg-[#000000] border-x border-emerald-950/60' : 'bg-[#06090f]'
+    } text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 overflow-hidden shadow-2xl relative`}>
       {/* Unauthorized Voice Warning Banner */}
       {unauthorizedVoiceAlert && (
         <div className="absolute top-14 left-4 right-4 z-50 p-3 rounded-xl bg-rose-950/95 border border-rose-500/60 shadow-2xl text-xs font-mono text-rose-200 flex items-center gap-2.5 animate-in slide-in-from-top duration-200">
@@ -261,6 +294,8 @@ export default function App() {
         isListening={isListening}
         isOnline={isOnline}
         batteryLevel={batteryLevel}
+        isBlackout={Boolean(isBlackoutMode)}
+        onToggleBlackout={() => handleToggleBlackout()}
       />
 
       {/* Main Viewport Content Area with smooth scrolling */}
@@ -269,11 +304,15 @@ export default function App() {
         {activeTab === 'all' && (
           <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 space-y-4 pb-24 no-scrollbar">
             {/* 1. Holographic Arc Reactor Visualizer (Audio-Reactive) */}
-            <div className="flex flex-col items-center justify-center p-2 rounded-2xl bg-gradient-to-b from-[#0a101d] to-[#060910] border border-slate-800/80 shadow-xl relative overflow-hidden">
+            <div className={`flex flex-col items-center justify-center p-2 rounded-2xl border shadow-xl relative overflow-hidden ${
+              Boolean(isBlackoutMode)
+                ? 'bg-[#020202] border-emerald-950 shadow-[0_0_24px_rgba(16,185,129,0.1)]'
+                : 'bg-gradient-to-b from-[#0a101d] to-[#060910] border-slate-800/80'
+            }`}>
               <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-15 pointer-events-none" />
               <HolographicVisualizer
                 status={visualizerStatus}
-                theme="cyan"
+                theme={Boolean(isBlackoutMode) ? 'emerald' : 'cyan'}
                 size={160}
                 showDetails={true}
               />
@@ -285,7 +324,19 @@ export default function App() {
               isOnline={isOnline}
             />
 
-            {/* 3. Executive Chat Console */}
+            {/* 3. Live Hardware & Thermal Telemetry Scanner (Jarvis Surpassing HUD) */}
+            <HardwareTelemetryHUD
+              compact={true}
+              isBlackout={Boolean(isBlackoutMode)}
+            />
+
+            {/* 4. Autonomous Routines & Protocols for Albert */}
+            <AutonomousProtocolsCard
+              isBlackout={Boolean(isBlackoutMode)}
+              onToggleBlackout={(enable) => handleToggleBlackout(enable)}
+            />
+
+            {/* 5. Executive Chat Console */}
             <ChatConsole
               messages={messages}
               streamingText={streamingText}

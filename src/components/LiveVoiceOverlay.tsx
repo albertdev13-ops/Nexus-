@@ -47,15 +47,25 @@ export const LiveVoiceOverlay: React.FC<LiveVoiceOverlayProps> = ({
   const [handsFree, setHandsFree] = useState(true);
   const [biometricMode, setBiometricModeState] = useState<'lenient' | 'strict' | 'disabled'>(() => getBiometricFilterMode());
 
-  // Track speech synthesizer state
+  // Track speech synthesizer and speech recognizer state
   useEffect(() => {
-    const unsub = piperTTS.subscribeSpeakingState((speaking) => {
+    const unsubSpeak = piperTTS.subscribeSpeakingState((speaking) => {
       setIsSpeaking(speaking);
-      if (speaking) {
-        setIsListening(false);
-      }
     });
-    return () => unsub();
+
+    const unsubListen = speechRecognizer.subscribeListeningState((listening) => {
+      setIsListening(listening);
+    });
+
+    const unsubInterim = speechRecognizer.subscribeInterimTranscript((interim) => {
+      setLiveTranscript(interim);
+    });
+
+    return () => {
+      unsubSpeak();
+      unsubListen();
+      unsubInterim();
+    };
   }, []);
 
   // Track mic audio level (dB)
@@ -88,14 +98,14 @@ export const LiveVoiceOverlay: React.FC<LiveVoiceOverlayProps> = ({
       piperTTS.stop();
     }
     setLiveTranscript('');
-    setIsListening(true);
-    playAlertChime('beep');
+    playAlertChime('listen_start');
 
     speechRecognizer.start(
       (text, isFinal) => {
         setLiveTranscript(text);
         if (isFinal && text.trim().length > 1) {
           handleSendQuery(text.trim());
+          playAlertChime('confirm');
         }
       },
       (error) => {

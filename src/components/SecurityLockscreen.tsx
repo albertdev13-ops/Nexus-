@@ -16,11 +16,29 @@ export const SecurityLockscreen: React.FC<SecurityLockscreenProps> = ({ onUnlock
   const [isRecordingVoiceprint, setIsRecordingVoiceprint] = useState(false);
   const [voiceSamples, setVoiceSamples] = useState<Uint8Array[]>([]);
   const [enrollProgress, setEnrollProgress] = useState(0);
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   const correctPin = getSavedPasscode();
   const voiceprint = getSavedVoiceprint();
 
+  // Listen to physical keyboard events so Albert can type his PIN directly
+  useEffect(() => {
+    if (step !== 'pin' || isUnlocking) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleKeyPress(e.key);
+      } else if (e.key === 'Backspace') {
+        handleBackspace();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pin, step, isUnlocking, correctPin]);
+
   const handleKeyPress = (num: string) => {
+    if (isUnlocking) return;
     if (pin.length < 4) {
       playAlertChime('beep');
       const newPin = pin + num;
@@ -29,20 +47,37 @@ export const SecurityLockscreen: React.FC<SecurityLockscreenProps> = ({ onUnlock
 
       if (newPin.length === 4) {
         if (newPin === correctPin) {
+          setIsUnlocking(true);
           playAlertChime('confirm');
-          // If Albert hasn't enrolled his voiceprint yet, proceed to voiceprint enrollment
+          // Vocal confirmation: Accès autorisé
           if (!voiceprint.enrolled) {
-            piperTTS.speak("Code d'accès validé, Monsieur Albert. Veuillez enregistrer votre empreinte vocale biométrique.");
+            piperTTS.speak(
+              "Accès autorisé. Bienvenue, Monsieur Albert. Veuillez enregistrer votre empreinte vocale biométrique.",
+              undefined,
+              { mode: 'executive' }
+            );
             setStep('voiceprint');
           } else {
-            piperTTS.speak("Système déverrouillé. Bonjour Monsieur Albert, je suis à vos ordres.");
-            onUnlocked();
+            piperTTS.speak(
+              "Accès autorisé. Bienvenue, Monsieur Albert. Tous les systèmes sont opérationnels.",
+              undefined,
+              { mode: 'executive' }
+            );
+            setTimeout(() => {
+              onUnlocked();
+            }, 600);
           }
         } else {
           playAlertChime('alarm');
+          // Vocal rejection: Accès refusé
+          piperTTS.speak(
+            "Accès refusé. Identification incorrecte.",
+            undefined,
+            { mode: 'alert' }
+          );
           setError(true);
-          setErrorMessage('Code incorrect. Réessayez.');
-          setTimeout(() => setPin(''), 600);
+          setErrorMessage('Accès refusé. Code secret incorrect.');
+          setTimeout(() => setPin(''), 800);
         }
       }
     }

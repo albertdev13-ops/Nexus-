@@ -15,6 +15,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { fetchSystemMetrics, playAlertChime } from '../services/commandSystem';
+import { HardwareTelemetryHUD } from './HardwareTelemetryHUD';
 
 interface SentinelDefensePanelProps {
   isOnline: boolean;
@@ -44,14 +45,16 @@ export const SentinelDefensePanel: React.FC<SentinelDefensePanelProps> = ({ isOn
   const handlePurgeMemory = () => {
     playAlertChime('beep');
     setMemoryPurged(true);
-    // Clear temporary caches
-    if (window.caches) {
-      window.caches.keys().then(keys => {
-        keys.forEach(k => {
-          if (k.includes('temp')) window.caches.delete(k);
-        });
-      });
-    }
+    // Clear temporary caches safely if available
+    try {
+      if (typeof window !== 'undefined' && 'caches' in window && window.caches) {
+        window.caches.keys().then(keys => {
+          keys.forEach(k => {
+            if (k.includes('temp')) window.caches.delete(k).catch(() => {});
+          });
+        }).catch(() => {});
+      }
+    } catch {}
 
     setLogs(prev => [
       {
@@ -99,6 +102,9 @@ export const SentinelDefensePanel: React.FC<SentinelDefensePanelProps> = ({ isOn
 
   return (
     <div className="space-y-4 max-w-xl mx-auto py-1 pb-16">
+      {/* Real-time Hardware & Thermal Telemetry Scanner */}
+      <HardwareTelemetryHUD compact={false} isBlackout={false} />
+
       {/* Sentinel Hero Card */}
       <div className={`p-4 rounded-2xl border transition-all ${
         threatLevel === 'lockdown'

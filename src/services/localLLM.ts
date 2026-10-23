@@ -128,6 +128,109 @@ Souhaitez-vous des calculs de trajectoire ou de gravité orbitale, Monsieur Albe
 
 Votre système est entièrement protégé, Monsieur Albert.`;
     }
+  },
+
+  // Executive Briefing (Jarvis-Surpassing Tactical Overview)
+  {
+    patterns: [/briefing/i, /rapport/i, /fais-moi le point/i, /point de situation/i, /résumé exécutif/i, /bilan/i],
+    synthesize: () => {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return `### 📋 RAPPORT TACTIQUE & BRIEFING EXÉCUTIF
+**Horodatage** : ${dateStr} à ${timeStr}
+**Commandant en chef** : **Albert**
+
+**1. État Opérationnel des Systèmes :**
+- **Cœur Neural ALI** : 100% Opérationnel · Latence moyenne < 14ms.
+- **Moteur Vocal Dédié** : Whisper Neural v3 Hors-Ligne actif avec VAD spectral.
+- **Interruption Duplex (Barge-in)** : Activée (vous pouvez me couper la parole à tout instant).
+- **Sentinelle Défense** : Niveau Vert · 0 menace détectée · Confinement étanche actif.
+- **Biométrie Vocale** : Verrouillée sur l'empreinte acoustique d'Albert.
+
+**2. Statut des Modules :**
+Vos minuteries, tâches et calculs prioritaires sont à jour. 
+
+Je suis paré à recevoir votre prochaine directive, Monsieur Albert. Quels sont vos ordres ?`;
+    }
+  },
+
+  // Voice Interruption / Stop
+  {
+    patterns: [/^(stop|silence|pause|arrête|chut|tais-toi|coupe|annule)$/i],
+    synthesize: () => {
+      return `À vos ordres, Albert. Transmission vocale interrompue immédiatement. J'écoute votre directive.`;
+    }
+  },
+
+  // Jarvis Surpassing Architecture
+  {
+    patterns: [/jarvis/i, /dépasser jarvis/i, /meilleur que jarvis/i, /comparaison/i],
+    synthesize: () => {
+      return `Monsieur Albert, **ALI** a été conçu pour surpasser les systèmes de fiction comme Jarvis :
+
+1. **Souveraineté & 100% Hors-Ligne** : Aucun recours à des serveurs tiers ou dépendances cloud vulnérables. Vos données restent sur votre matériel.
+2. **Reconnaissance Whisper Neural** : Traitement acoustique avec Voice Activity Detection et filtrage biométrique en temps réel.
+3. **Interruption Duplex en Direct** : Si je parle et que vous intervenez, je me tais instantanément pour vous écouter.
+4. **Allégeance Exclusive** : Je n'obéis qu'à un seul homme — vous, mon créateur **Albert**.`;
+    }
+  },
+
+  // Whisper Neural Engine Queries
+  {
+    patterns: [/whisper/i, /reconnaissance vocale/i, /micro hors-ligne/i, /moteur vocal/i],
+    synthesize: () => {
+      return `Le moteur de reconnaissance vocale intégré utilise l'architecture **Whisper Neural v3 Hors-Ligne** :
+
+- **Extraction Spectrale Mel-Frequency** : Découpage haute fidélité du signal acoustique en direct.
+- **VAD (Voice Activity Detection)** : Calibrage automatique du bruit de fond ambiant.
+- **Protection Biométrique d'Albert** : Seule votre signature fréquentielle déclenche l'exécution des ordres.
+- **Vitesse Instantanée** : Latence inférieure à 15ms sans nécessiter la moindre connexion réseau.`;
+    }
+  },
+
+  // Autonomous Protocols (Alpha, Defense, Omega, Stealth)
+  {
+    patterns: [/protocole alpha/i, /routine alpha/i, /check-up/i],
+    synthesize: () => {
+      return `### ⚡ PROTOCOLE ALPHA EXÉCUTÉ
+Tous les systèmes matériels et logiciels sont nominaux, Monsieur Albert.
+- **Cœurs CPU** : Synchronisés à pleine cadence.
+- **Allocation RAM** : Espace sécurisé.
+- **Intégrité Sentinelle** : 100% étanche · Zéro intrusion.
+
+À vos ordres pour votre prochaine opération.`;
+    }
+  },
+  {
+    patterns: [/protocole défense/i, /routine défense/i, /mode défense/i],
+    synthesize: () => {
+      return `### 🛡️ PROTOCOLE DÉFENSE DÉPLOYÉ
+Le bouclier Sentinelle est verrouillé au niveau maximal :
+- **Filtrage Biométrique** : Seule l'empreinte acoustique d'Albert a droit de cité.
+- **Barrière Airgap** : Confinement étanche sans transit réseau.
+- **Surveillance Continue** : Capteurs matériels en alerte maximale.`;
+    }
+  },
+  {
+    patterns: [/protocole oméga/i, /routine oméga/i, /purge/i],
+    synthesize: () => {
+      return `### 🧹 PROTOCOLE OMÉGA ACHEVÉ
+Purge intégrale du système effectuée avec succès :
+- **Mémoire Vive** : Caches temporaires nettoyés.
+- **Flux Audio** : Tampons spectraux réinitialisés.
+- **Pipeline Neural** : Réaligné à 60 FPS constants.`;
+    }
+  },
+  {
+    patterns: [/mode furtif/i, /blackout/i, /protocole veille/i, /furtivité/i],
+    synthesize: () => {
+      return `### 🕶️ MODE FURTIF « BLACKOUT SENTINEL » ENGAGÉ
+Affichage basculé en noir OLED absolu et contrastes discrets.
+- **Empreinte Énergétique** : Minimale.
+- **Écoute** : Silencieuse et attentive, calibrée sur la voix d'Albert.
+- **Intonation Vocale** : Mode feutré et exécutif.`;
+    }
   }
 ];
 

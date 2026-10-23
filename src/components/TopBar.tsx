@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, Shield, Globe, Zap, Battery, Volume2 } from 'lucide-react';
+import { Mic, Shield, Globe, Zap, Battery, Volume2, EyeOff } from 'lucide-react';
 
 interface TopBarProps {
   activeTab: 'all' | 'console' | 'defense' | 'tasks' | 'voice';
@@ -9,6 +9,8 @@ interface TopBarProps {
   isListening: boolean;
   isOnline: boolean;
   batteryLevel?: number;
+  isBlackout?: boolean;
+  onToggleBlackout?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -18,7 +20,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   isSpeaking,
   isListening,
   isOnline,
-  batteryLevel = 100
+  batteryLevel = 100,
+  isBlackout = false,
+  onToggleBlackout
 }) => {
   return (
     <header className="border-b border-slate-800/80 bg-[#070a11]/95 backdrop-blur-md sticky top-0 z-30 h-14 px-4 flex items-center justify-between select-none">
@@ -41,8 +45,23 @@ export const TopBar: React.FC<TopBarProps> = ({
         </span>
       </div>
 
-      {/* Right Slot: Sentinel Shield & Live HUD Trigger */}
+      {/* Right Slot: Stealth, Sentinel Shield & Live HUD Trigger */}
       <div className="flex items-center gap-2">
+        {/* Stealth Blackout Toggle Button */}
+        {onToggleBlackout && (
+          <button
+            onClick={() => onToggleBlackout?.()}
+            className={`p-2 rounded-lg border transition-all cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center ${
+              Boolean(isBlackout)
+                ? 'bg-emerald-950/80 text-emerald-400 border-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+            }`}
+            title={Boolean(isBlackout) ? 'Mode Furtif Actif (Cliquer pour désactiver)' : 'Activer Mode Furtif Blackout'}
+          >
+            <EyeOff className="w-4 h-4" />
+          </button>
+        )}
+
         {/* Battery Indicator */}
         <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300">
           <Battery className="w-3 h-3 text-emerald-400" />

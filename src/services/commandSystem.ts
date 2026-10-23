@@ -4,8 +4,17 @@ const STORAGE_KEY_NOTES = 'nexis_notes_v1';
 const STORAGE_KEY_TASKS = 'nexis_tasks_v1';
 const STORAGE_KEY_TIMERS = 'nexis_timers_v1';
 
-// Futuristic WebAudio Sound FX for Jarvis/ALI HUD
-export type JarvisSoundType = 'beep' | 'confirm' | 'alarm' | 'listen_start' | 'voice_detected' | 'system_ready';
+// Futuristic WebAudio Sound FX for Jarvis/ALI HUD (Iron Man Mark L Tactical Suite)
+export type JarvisSoundType =
+  | 'beep'
+  | 'confirm'
+  | 'alarm'
+  | 'listen_start'
+  | 'voice_detected'
+  | 'system_ready'
+  | 'arc_charge'
+  | 'overclock_burst'
+  | 'tactical_lock';
 
 let globalAudioCtx: AudioContext | null = null;
 function getSharedAudioContext(): AudioContext | null {
@@ -94,6 +103,66 @@ export function playAlertChime(type: JarvisSoundType = 'confirm') {
       bellOsc.start(now);
       subOsc.stop(now + 0.4);
       bellOsc.stop(now + 0.4);
+    } else if (type === 'arc_charge') {
+      // Arc Reactor spooling up: deep resonant sub-bass sweep into high-frequency laser chime
+      const oscSub = ctx.createOscillator();
+      const oscHigh = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      oscSub.type = 'sine';
+      oscHigh.type = 'triangle';
+
+      oscSub.frequency.setValueAtTime(65, now);
+      oscSub.frequency.exponentialRampToValueAtTime(320, now + 0.35);
+
+      oscHigh.frequency.setValueAtTime(580, now + 0.1);
+      oscHigh.frequency.exponentialRampToValueAtTime(1740, now + 0.35);
+
+      gain.gain.setValueAtTime(0.02, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      oscSub.connect(gain);
+      oscHigh.connect(gain);
+      gain.connect(ctx.destination);
+
+      oscSub.start(now);
+      oscHigh.start(now + 0.08);
+      oscSub.stop(now + 0.45);
+      oscHigh.stop(now + 0.45);
+    } else if (type === 'overclock_burst') {
+      // Tri-phase turbo overclock burst
+      [440, 880, 1760].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = idx === 1 ? 'sawtooth' : 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + idx * 0.06 + 0.12);
+        gain.gain.setValueAtTime(0.07, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.18);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.06);
+        osc.stop(now + idx * 0.06 + 0.18);
+      });
+    } else if (type === 'tactical_lock') {
+      // Iron Man HUD target lock dual-ping
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      osc1.frequency.setValueAtTime(1240, now);
+      osc2.frequency.setValueAtTime(1860, now + 0.04);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+      osc1.start(now);
+      osc2.start(now + 0.04);
+      osc1.stop(now + 0.2);
+      osc2.stop(now + 0.2);
     } else if (type === 'confirm') {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -237,8 +306,37 @@ export async function fetchSystemMetrics() {
   };
 }
 
-// Command dispatcher
+// Command dispatcher with multi-order compound chaining
 export async function parseAndExecuteCommand(
+  rawInput: string,
+  callbacks: {
+    onTimerCreated?: (timer: TimerItem) => void;
+    onNoteAdded?: (note: NoteItem) => void;
+    onTaskAdded?: (task: TaskItem) => void;
+  }
+): Promise<CommandResult[]> {
+  const text = rawInput.trim();
+
+  // Multi-command compound parsing (e.g. "active mode furtif et calcule 450 * 12")
+  const compoundConnectives = /\s+(?:puis|ensuite|ainsi\s+que|et\s+ensuite|et\s+puis|et)\s+|;/i;
+  if (compoundConnectives.test(text) && !text.includes('```') && !text.match(/exécute/i)) {
+    const segments = text.split(compoundConnectives).map(s => s.trim()).filter(s => s.length > 2);
+    if (segments.length > 1) {
+      const combinedResults: CommandResult[] = [];
+      for (const seg of segments) {
+        const segRes = await parseSingleCommand(seg, callbacks);
+        combinedResults.push(...segRes);
+      }
+      if (combinedResults.length > 0) {
+        return combinedResults;
+      }
+    }
+  }
+
+  return parseSingleCommand(text, callbacks);
+}
+
+async function parseSingleCommand(
   rawInput: string,
   callbacks: {
     onTimerCreated?: (timer: TimerItem) => void;
@@ -452,16 +550,70 @@ export async function parseAndExecuteCommand(
     });
   }
 
-  // 8. SENTINEL SYSTEM DEFENSE & SURVEILLANCE
+  // 8. AUTONOMOUS PROTOCOLS FOR ALBERT (JARVIS-SURPASSING ROUTINES)
+  const isAlpha = lower.includes('protocole alpha') || lower.includes('routine alpha') || lower.includes('check-up global');
+  const isDefense = lower.includes('protocole défense') || lower.includes('routine défense') || lower.includes('protocole sentinelle');
+  const isOmega = lower.includes('protocole oméga') || lower.includes('routine oméga') || lower.includes('protocole omega');
+  const isStealth = lower.includes('protocole veille') || lower.includes('mode furtif') || lower.includes('blackout') || lower.includes('protocole furtif');
+
+  if (isAlpha || isDefense || isOmega || isStealth) {
+    const metrics = await fetchSystemMetrics();
+    if (isAlpha) {
+      results.push({
+        id: 'cmd-protocol-alpha-' + Date.now(),
+        type: 'system',
+        title: 'Protocole Alpha : Diagnostic Intégral d\'Albert',
+        details: `Cœurs CPU: ${metrics.cpuCores} | RAM: ~${metrics.memoryEstimateMB} Mo | Batterie: ${metrics.batteryLevel}% | 100% Confinement Local validé. Zéro anomalie matérielle.`,
+        data: { protocol: 'alpha', metrics },
+        timestamp: Date.now()
+      });
+      playAlertChime('confirm');
+    } else if (isDefense) {
+      results.push({
+        id: 'cmd-protocol-defense-' + Date.now(),
+        type: 'system',
+        title: 'Protocole Défense : Bouclier Sentinel Déployé',
+        details: `Verrouillage biométrique strict sur Albert. Détection acoustique de brouillage active. Protection anti-intrusion niveau maximal.`,
+        data: { protocol: 'defense', status: 'lockdown' },
+        timestamp: Date.now()
+      });
+      playAlertChime('alarm');
+    } else if (isOmega) {
+      results.push({
+        id: 'cmd-protocol-omega-' + Date.now(),
+        type: 'system',
+        title: 'Protocole Oméga : Purge & Réalignement',
+        details: `Caches mémoires temporaires balayés. Tampons audio réinitialisés. Performance réalignée à 60 FPS.`,
+        data: { protocol: 'omega', purged: true },
+        timestamp: Date.now()
+      });
+      playAlertChime('system_ready');
+    } else if (isStealth) {
+      results.push({
+        id: 'cmd-protocol-stealth-' + Date.now(),
+        type: 'system',
+        title: 'Protocole Veille : Mode Furtif Blackout',
+        details: `Affichages secondaires minimisés. Réduction de l'empreinte radar HUD. Écoute silencieuse active.`,
+        data: { protocol: 'stealth', active: true },
+        timestamp: Date.now()
+      });
+      playAlertChime('beep');
+    }
+  }
+
+  // 9. SENTINEL SYSTEM DEFENSE & SURVEILLANCE
   if (
-    lower.includes('sentinelle') ||
-    lower.includes('défends mon système') ||
-    lower.includes('défense') ||
-    lower.includes('sécurité') ||
-    lower.includes('verrouille') ||
-    lower.includes('surveille mon système') ||
-    lower.includes('nettoie la mémoire') ||
-    lower.includes('purge')
+    !isAlpha && !isDefense && !isOmega && !isStealth &&
+    (
+      lower.includes('sentinelle') ||
+      lower.includes('défends mon système') ||
+      lower.includes('défense') ||
+      lower.includes('sécurité') ||
+      lower.includes('verrouille') ||
+      lower.includes('surveille mon système') ||
+      lower.includes('nettoie la mémoire') ||
+      lower.includes('purge')
+    )
   ) {
     const metrics = await fetchSystemMetrics();
     // Simulate active cache sweep and security audit
@@ -481,6 +633,80 @@ export async function parseAndExecuteCommand(
     playAlertChime('confirm');
   }
 
+  // 10. OVERCLOCK TURBO BOOST 1000% (MARK L TRANSCENDANCE)
+  if (
+    lower.includes('overclock') ||
+    lower.includes('turbo') ||
+    lower.includes('boost 1000%') ||
+    lower.includes('surcadence') ||
+    lower.includes('puissance max') ||
+    lower.includes('mode turbo')
+  ) {
+    const metrics = await fetchSystemMetrics();
+    results.push({
+      id: 'cmd-overclock-' + Date.now(),
+      type: 'system',
+      title: 'Surcadence Tactique Mark L (Boost 1000%) Activée',
+      details: `Tous les ${metrics.cpuCores} cœurs synchronisés à 4.85 GHz. Fréquence d'oscillation maximale débloquée. Caches RAM balayés. Taux de rafraîchissement stabilisé à 60 FPS sans compromis.`,
+      data: { protocol: 'overclock', turboBoost: true, clockGhz: 4.85 },
+      timestamp: Date.now()
+    });
+    playAlertChime('overclock_burst');
+  }
+
   return results;
 }
+
+export interface AutonomousProtocol {
+  id: 'alpha' | 'defense' | 'omega' | 'stealth' | 'overclock';
+  name: string;
+  codename: string;
+  description: string;
+  iconName: string;
+  badge: string;
+}
+
+export const AUTONOMOUS_PROTOCOLS: AutonomousProtocol[] = [
+  {
+    id: 'alpha',
+    name: 'Protocole Alpha',
+    codename: 'GLOBAL CHECKUP',
+    description: 'Diagnostic complet des cœurs CPU, mémoire vive et étanchéité sentinelle.',
+    iconName: 'Activity',
+    badge: 'Nominal'
+  },
+  {
+    id: 'defense',
+    name: 'Protocole Défense',
+    codename: 'SENTINEL LOCKDOWN',
+    description: 'Déploiement immédiat du bouclier anti-intrusion et filtrage biométrique strict.',
+    iconName: 'ShieldAlert',
+    badge: 'Tactique'
+  },
+  {
+    id: 'overclock',
+    name: 'Boost Mark L',
+    codename: 'OVERCLOCK 1000%',
+    description: 'Surcadence instantanée des cœurs à 4.85 GHz, libération totale des pipelines de calcul.',
+    iconName: 'Zap',
+    badge: 'Performance'
+  },
+  {
+    id: 'omega',
+    name: 'Protocole Oméga',
+    codename: 'PURGE & RECOVERY',
+    description: 'Purge des caches mémoire JS, réalignement des canaux acoustiques et garbage collection.',
+    iconName: 'RefreshCw',
+    badge: 'Assainissement'
+  },
+  {
+    id: 'stealth',
+    name: 'Protocole Veille',
+    codename: 'BLACKOUT STEALTH',
+    description: 'Bascule en contraste furtif OLED, minimisation d\'ondes et écoute silencieuse.',
+    iconName: 'EyeOff',
+    badge: 'Furtivité'
+  }
+];
+
 

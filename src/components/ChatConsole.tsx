@@ -94,6 +94,7 @@ export const ChatConsole: React.FC<ChatConsoleProps> = ({
   const handleToggleVoiceInput = () => {
     if (speechRecognizer.getIsListening()) {
       speechRecognizer.stop();
+      playAlertChime('beep');
       if (inputText.trim()) {
         handleSubmit();
       }
@@ -105,7 +106,6 @@ export const ChatConsole: React.FC<ChatConsoleProps> = ({
             setInputText(transcript);
           }
           if (isFinal && transcript.trim()) {
-            speechRecognizer.stop();
             onSendMessage(transcript.trim());
             setInputText('');
             setLiveTranscript('');
@@ -124,11 +124,12 @@ export const ChatConsole: React.FC<ChatConsoleProps> = ({
   };
 
   const quickPrompts = [
-    { label: 'Statut du système', text: 'Ali, donne-moi le statut complet du système' },
-    { label: 'Défense active', text: 'Ali, active la défense sentinelle' },
-    { label: 'Minuteur 3m', text: 'Minuteur de 3 minutes' },
-    { label: 'Calcule 1540 * 1.2', text: 'Calcule 1540 * 1.2' },
-    { label: 'Nettoie la mémoire', text: 'Ali, nettoie la mémoire vive' }
+    { label: '⚡ Protocole Alpha', text: 'Ali, engage le protocole alpha' },
+    { label: '📋 Briefing Exécutif', text: 'Ali, fais-moi le point et le briefing complet' },
+    { label: '🕶️ Mode Furtif', text: 'Ali, active le mode furtif blackout' },
+    { label: '🛡️ Protocole Défense', text: 'Ali, déploie le protocole défense sentinelle' },
+    { label: '🧹 Protocole Oméga', text: 'Ali, lance le protocole oméga pour nettoyer la mémoire' },
+    { label: '🔢 Calcule 1540 * 1.2', text: 'Calcule 1540 * 1.2' }
   ];
 
   const currentEngine = piperTTS.getCurrentEngine();
@@ -296,39 +297,55 @@ export const ChatConsole: React.FC<ChatConsoleProps> = ({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-300 font-bold">
-                  Capture Vocale Active · Albert
+                  Whisper Neural v3 · Albert
                 </span>
                 <span className="text-[9px] font-mono text-emerald-300 bg-emerald-950/80 border border-emerald-700/50 px-1.5 py-0.2 rounded font-semibold">
-                  Hors-Ligne
+                  100% Hors-Ligne
+                </span>
+                <span className="hidden sm:inline-block text-[9px] font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-800/40 px-1.5 py-0.2 rounded">
+                  Barge-in Duplex
                 </span>
               </div>
-              <p className="text-xs font-mono text-white truncate font-medium mt-0.5">
-                {liveTranscript ? (
-                  <span className="text-cyan-200">"{liveTranscript}"</span>
-                ) : (
-                  <span className="text-slate-400 italic">Parlez maintenant... Ali capte votre voix en direct.</span>
-                )}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs font-mono text-white truncate font-medium flex-1">
+                  {liveTranscript ? (
+                    <span className="text-cyan-200 font-semibold">« {liveTranscript} »</span>
+                  ) : (
+                    <span className="text-slate-400 italic flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                      Écoute active d'Albert en cours... Parlez librement.
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {liveTranscript && (
-              <button
-                type="button"
-                onClick={() => {
-                  speechRecognizer.forceCommit();
-                }}
-                className="px-2.5 py-1 text-xs font-mono font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded shadow-[0_0_12px_rgba(6,182,212,0.5)] transition-all cursor-pointer"
-              >
-                Valider
-              </button>
-            )}
             <button
               type="button"
-              onClick={() => speechRecognizer.stop()}
+              onClick={() => {
+                if (liveTranscript.trim()) {
+                  speechRecognizer.forceCommit();
+                } else if (inputText.trim()) {
+                  handleSubmit();
+                } else {
+                  speechRecognizer.forceCommit();
+                }
+              }}
+              className="px-2.5 py-1 text-xs font-mono font-bold bg-cyan-400 hover:bg-cyan-300 text-slate-950 rounded-md shadow-[0_0_12px_rgba(6,182,212,0.5)] transition-all cursor-pointer"
+              title="Envoyer l'ordre immédiatement à Ali"
+            >
+              Envoyer
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                speechRecognizer.stop();
+                playAlertChime('beep');
+              }}
               className="p-1 rounded text-slate-400 hover:text-rose-300 transition-colors"
-              title="Fermer micro"
+              title="Fermer le micro"
             >
               <MicOff className="w-3.5 h-3.5" />
             </button>

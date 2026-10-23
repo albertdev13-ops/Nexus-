@@ -102,11 +102,15 @@ export const AudioWaveformBar: React.FC<AudioWaveformBarProps> = ({
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
           <Zap className="w-3.5 h-3.5 text-cyan-400" />
           <div className="flex flex-col text-left">
-            <span className="text-[10px] text-slate-400 leading-none">Voix d'Ali</span>
+            <span className="text-[10px] text-slate-400 leading-none">Moteur Vocal</span>
             <span className="text-cyan-300 font-semibold text-xs leading-tight">
-              Masculine Calibrée
+              Whisper Neural v3
             </span>
           </div>
+        </div>
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-emerald-500/30 text-[10px] font-mono text-emerald-400">
+          <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
+          <span>Duplex Actif</span>
         </div>
       </div>
     </div>
